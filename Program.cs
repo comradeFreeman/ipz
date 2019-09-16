@@ -22,8 +22,8 @@ namespace ConsoleApp45
             var serviceCollection = new ServiceCollection();
             serviceCollection.AddAudioBypass();
             apiVK = new VkApi(serviceCollection);
-            var login = /*Console.ReadLine() */"380662601201";
-            var password = /*Console.ReadLine()"*/"StirlitzPartizan";
+            var login = /*Console.ReadLine() */;
+            var password = /*Console.ReadLine()"*/;
             apiVK.SetLanguage(VkNet.Enums.Language.Ru);
             apiVK.Authorize(new ApiAuthParams { Login = login, Password = password, });
             //var mess = apiVK.Messages.Search(new MessagesSearchParams { Query = "Ира", Date = DateTime.Now, Count = 1});
