@@ -78,6 +78,7 @@ make > /dev/null 2>>log.txt
 if [[ $? == 0 ]]
 	then
 		printf "SUCCESS!\n"
+		cd ym2149-sndh
 	else
 		printf "Error...\n"
 fi
