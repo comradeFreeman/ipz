@@ -1,0 +1,60 @@
+#!/bin/sh
+
+# Define vars
+IF_EXT="enp0s3"
+IF_INT="enp0s8"
+INET_IP="10.0.2.15"
+IPT="/sbin/iptables"
+SERVER_IP="192.168.10.1"
+LOCALNET="192.168.10.0/255.255.255.0"
+VPNNET="10.8.0.0/24"
+
+$IPT -F
+$IPT -X
+$IPT -F -t nat
+$IPT -X -t nat
+
+# setting default policy
+$IPT -P INPUT DROP
+$IPT -P OUTPUT ACCEPT
+$IPT -P FORWARD ACCEPT
+$IPT -t nat -P POSTROUTING ACCEPT
+$IPT -t nat -P PREROUTING ACCEPT
+
+# flush
+$IPT -t filter -F
+$IPT -t mangle -F
+$IPT -t nat -F
+$IPT -t raw -F # (optional)
+
+# masq
+$IPT -t nat -A POSTROUTING -s $LOCALNET -o $IF_EXT -j MASQUERADE
+$IPT -A INPUT -i $IF_EXT -m state --state ESTABLISHED,RELATED -j ACCEPT
+$IPT -A FORWARD -d $LOCALNET -m state --state ESTABLISHED,RELATED -j ACCEPT
+$IPT -t nat -A POSTROUTING -s $VPNNET -o $IF_EXT -j MASQUERADE
+
+# openvpn
+$IPT -A INPUT -i $IF_INT -m state --state NEW -p udp --dport 1194 -j ACCEPT
+$IPT -A INPUT -i tun+ -j ACCEPT
+$IPT -A FORWARD -i tun+ -j ACCEPT
+$IPT -A FORWARD -i tun+ -o $IF_INT -m state --state RELATED,ESTABLISHED -j ACCEPT
+$IPT -A FORWARD -i $IF_INT -o tun+ -m state --state RELATED,ESTABLISHED -j ACCEPT
+$IPT -A OUTPUT -o tun+ -j ACCEPT
+
+#
+$IPT -A INPUT -i lo -j ACCEPT
+$IPT -A INPUT -i $IF_INT -j ACCEPT
+
+#ssh
+$IPT -A INPUT -i $IF_EXT -p tcp --destination-port 22 -j ACCEPT
+
+#ping
+$IPT -A INPUT -i $IF_INT -p icmp -j ACCEPT
+$IPT -A INPUT -i $IF_EXT -p icmp -j ACCEPT
+
+echo 1 > /proc/sys/net/ipv4/ip_forward
+
+# rdp
+### Forward RDP to internal server 192.168.31.2
+$IPT -t nat -A PREROUTING -d $INET_IP -p tcp -m tcp --dport 3389 -j DNAT --to-destination $SERVER_IP:3389
+$IPT -A FORWARD -p tcp -d $SERVER_IP --dport 3389 -j ACCEPT
